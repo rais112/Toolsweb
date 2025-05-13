@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Compressor</title>
+    <!-- pdf-lib CDN -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #007bff; /* A common bright blue */
+            --light-blue: #e7f3ff;
+            --white: #ffffff;
+            --dark-text: #333333;
+            --light-text: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-green: #28a745;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--light-blue);
+            color: var(--dark-text);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for longer content */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .tool-container {
+            background-color: var(--white);
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .tool-header h1 {
+            color: var(--primary-blue);
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .tool-header p {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        .upload-section {
+            margin-bottom: 25px;
+        }
+
+        .upload-button {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            border: 2px dashed var(--light-blue); /* Changed to light-blue for better contrast on white */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .upload-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        
+        .upload-button.dragover {
+            background-color: #0056b3;
+            border-color: var(--primary-blue);
+        }
+
+        .upload-button svg {
+            margin-right: 10px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.95em;
+            color: #444;
+        }
+
+        .preview-section {
+            margin-top: 20px;
+            margin-bottom: 25px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .preview-section h2 {
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+        }
+
+        .iframe-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden; /* Ensures iframe corners are also rounded */
+            background-color: #f0f0f0; /* Placeholder background */
+        }
+
+        #pdfPreview {
+            width: 100%;
+            height: 400px; /* Adjust as needed */
+            border: none;
+            display: block; /* remove extra space below iframe */
+        }
+
+        .action-section button,
+        .download-button {
+            background-color: var(--success-green);
+            color: var(--white);
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            text-decoration: none; /* For <a> styled as button */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .action-section button svg,
+        .download-button svg {
+            margin-right: 8px;
+        }
+
+
+        .action-section button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .action-section button:not(:disabled):hover,
+        .download-button:hover {
+            background-color: #218838; /* Darker green */
+        }
+
+        .download-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .download-section h2 {
+            color: var(--success-green);
+            margin-bottom: 10px;
+        }
+
+        .loader {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            border: 5px solid var(--light-blue);
+            border-top: 5px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .tool-container {
+                margin: 0 auto; /* Center on small screens, respect body padding */
+                padding: 20px 15px;
+            }
+
+            .tool-header h1 {
+                font-size: 1.8em;
+            }
+            .tool-header p {
+                font-size: 1em;
+            }
+
+            .upload-button,
+            .action-section button,
+            .download-button {
+                font-size: 1em;
+                padding: 12px 18px;
+                width: 100%; /* Make buttons full width on small screens */
+                box-sizing: border-box;
+            }
+            
+            #pdfPreview {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-container">
+        <header class="tool-header">
+            <h1>PDF Compressor</h1>
+            <p>Upload your PDF, and we'll try to optimize it for a smaller size.</p>
+        </header>
+
+        <main class="tool-content">
+            <div class="upload-section">
+                <input type="file" id="pdfUpload" accept=".pdf" hidden>
+                <label for="pdfUpload" class="upload-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                    <span>Choose PDF or Drag & Drop</span>
+                </label>
+                <p id="fileName" class="file-info"></p>
+                <p id="originalSize" class="file-info"></p>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h2>Preview</h2>
+                <div class="iframe-container">
+                    <iframe id="pdfPreview" title="PDF Preview"></iframe>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button id="compressBtn" disabled>Compress PDF</button>
+            </div>
+
+            <div class="loader" id="loader" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+
+            <div class="download-section" id="downloadSection" style="display: none;">
+                <h2>Optimized PDF Ready!</h2>
+                <p id="compressedSize" class="file-info"></p>
+                <a id="downloadLink" class="download-button" href="#" download>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                    </svg>
+                    Download Optimized PDF
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pdfUpload = document.getElementById('pdfUpload');
+            const uploadButtonLabel = document.querySelector('label[for="pdfUpload"]');
+            const fileNameDisplay = document.getElementById('fileName');
+            const originalSizeDisplay = document.getElementById('originalSize');
+            const previewSection = document.getElementById('previewSection');
+            const pdfPreview = document.getElementById('pdfPreview');
+            const compressBtn = document.getElementById('compressBtn');
+            const loader = document.getElementById('loader');
+            const downloadSection = document.getElementById('downloadSection');
+            const compressedSizeDisplay = document.getElementById('compressedSize');
+            const downloadLink = document.getElementById('downloadLink');
+
+            let originalFile = null;
+            let originalFileName = '';
+
+            // pdf-lib should be globally available from the CDN script
+            const { PDFDocument } = PDFLib;
+
+            pdfUpload.addEventListener('change', handleFileSelect);
+            
+            // Drag and Drop functionality
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadButtonLabel.addEventListener(eventName, preventDefaults, false);
+                // Prevent browser default behavior for drag/drop over the whole body
+                // to stop it from opening the file if dropped outside the designated area.
+                document.body.addEventListener(eventName, preventDefaults, false); 
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadButtonLabel.addEventListener(eventName, () => {
+                    uploadButtonLabel.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadButtonLabel.addEventListener(eventName, () => {
+                    uploadButtonLabel.classList.remove('dragover');
+                }, false);
+            });
+
+            uploadButtonLabel.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function handleDrop(e) {
+                // e.dataTransfer is where the dropped files are
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length) {
+                    handleFile(files[0]); // Process the first dropped file
+                }
+            }
+
+            function handleFileSelect(event) {
+                if (event.target.files && event.target.files[0]) {
+                    handleFile(event.target.files[0]);
+                }
+            }
+
+            function handleFile(file) {
+                if (file.type !== "application/pdf") {
+                    alert("Please upload a PDF file.");
+                    resetUI();
+                    return;
+                }
+                originalFile = file;
+                originalFileName = file.name;
+
+                fileNameDisplay.textContent = `File: ${originalFileName}`;
+                originalSizeDisplay.textContent = `Original Size: ${formatFileSize(originalFile.size)}`;
+
+                // Create a URL for the iframe preview
+                const fileURL = URL.createObjectURL(originalFile);
+                pdfPreview.src = fileURL;
+                // We don't revoke this URL immediately because the iframe needs it.
+                // It will be implicitly revoked when the document is unloaded or if we change the src.
+                
+                previewSection.style.display = 'block';
+                compressBtn.disabled = false;
+                downloadSection.style.display = 'none'; 
+                if (downloadLink.href !== '#') {
+                    URL.revokeObjectURL(downloadLink.href); // Revoke old blob URL from previous compression
+                    downloadLink.href = '#';
+                }
+                loader.style.display = 'none';
+            }
+
+            compressBtn.addEventListener('click', async () => {
+                if (!originalFile) {
+                    alert("Please upload a PDF first.");
+                    return;
+                }
+
+                loader.style.display = 'flex';
+                compressBtn.disabled = true;
+                downloadSection.style.display = 'none';
+
+                try {
+                    const arrayBuffer = await originalFile.arrayBuffer();
+                    
+                    // Load the PDF
+                    const pdfDoc = await PDFDocument.load(arrayBuffer, {
+                        // Options for loading if needed, e.g.:
+                        // updateMetadata: false // Don't update PDF producer/modification date on load
+                    });
+
+                    // --- "Optimization" using pdf-lib ---
+                    // pdf-lib re-saving can sometimes result in smaller files if the
+                    // original was inefficiently structured. It's not true compression
+                    // like image re-encoding or advanced object stream optimization.
+
+                    // Example: You *could* try to remove metadata, but its impact is usually tiny.
+                    // pdfDoc.setTitle('');
+                    // pdfDoc.setAuthor('');
+                    // pdfDoc.setSubject('');
+                    // pdfDoc.setKeywords([]);
+                    // pdfDoc.setProducer('My PDF Compressor'); // Or leave as pdf-lib default
+                    // pdfDoc.setCreator('My Web Tool');
+                    // pdfDoc.setCreationDate(new Date()); // Reset dates
+                    // pdfDoc.setModificationDate(new Date());
+
+                    const pdfBytes = await pdfDoc.save({
+                        // useObjectStreams: true, // Default is true, generally better for size.
+                                                 // Set to false only for compatibility if needed.
+                        // addDefaultPage: false, // if you are sure you don't need one
+                    });
+
+                    const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                    compressedSizeDisplay.textContent = `Optimized Size: ${formatFileSize(compressedBlob.size)} (${calculateReduction(originalFile.size, compressedBlob.size)})`;
+                    
+                    if (downloadLink.href && downloadLink.href !== '#') {
+                        URL.revokeObjectURL(downloadLink.href); // Revoke previous blob URL if any
+                    }
+                    downloadLink.href = URL.createObjectURL(compressedBlob);
+                    downloadLink.download = `optimized_${originalFileName}`; // Changed prefix
+                    
+                    downloadSection.style.display = 'block';
+
+                } catch (error) {
+                    console.error("Error during PDF processing:", error);
+                    alert(`An error occurred during PDF processing: ${error.message}. The PDF might be corrupted, password-protected, or too complex for client-side processing.`);
+                    downloadSection.style.display = 'none';
+                } finally {
+                    loader.style.display = 'none';
+                    // Keep compress button disabled until a new file is uploaded or re-enable
+                    // compressBtn.disabled = false; 
+                    // For this flow, let's keep it disabled to encourage re-upload for new compression
+                }
+            });
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            function calculateReduction(originalSize, compressedSize) {
+                if (originalSize === 0) return 'N/A';
+                let reduction = ((originalSize - compressedSize) / originalSize) * 100;
+                
+                if (compressedSize > originalSize) {
+                    return `+${Math.abs(reduction).toFixed(1)}% larger`;
+                } else if (reduction >= 0) {
+                    return `${reduction.toFixed(1)}% smaller`;
+                } else {
+                     return 'No change'; // Should not happen with the above if
+                }
+            }
+
+            function resetUI() {
+                fileNameDisplay.textContent = '';
+                originalSizeDisplay.textContent = '';
+                previewSection.style.display = 'none';
+                pdfPreview.src = 'about:blank'; // Clear iframe
+                compressBtn.disabled = true;
+                downloadSection.style.display = 'none';
+                loader.style.display = 'none';
+                originalFile = null;
+                originalFileName = '';
+                if (downloadLink.href && downloadLink.href !== '#') {
+                    URL.revokeObjectURL(downloadLink.href);
+                }
+                downloadLink.href = '#';
+                pdfUpload.value = ''; // Reset file input so 'change' event fires for same file
+            }
+        });
+    </script>
+</body>
+</html>
