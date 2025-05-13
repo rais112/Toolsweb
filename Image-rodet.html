@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Rotator/Flipper</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--primary-color);
+        }
+
+        .tool-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-width: 500px;
+            margin: 1rem auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #previewImage {
+            width: 100%;
+            height: auto;
+            transition: transform 0.3s ease;
+            border-radius: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: #1976D2;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .download-btn {
+            background-color: #4CAF50;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .tool-section {
+                padding: 1rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="header">Image Rotator & Flipper</h1>
+        
+        <div class="tool-section">
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            <div class="image-preview">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Preview" id="previewImage">
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    📁 Upload Image
+                </button>
+                <button class="btn" onclick="rotateImage(90)">
+                    ↻ Rotate Right
+                </button>
+                <button class="btn" onclick="rotateImage(-90)">
+                    ↺ Rotate Left
+                </button>
+                <button class="btn" onclick="flipImage('horizontal')">
+                    ↔️ Flip Horizontal
+                </button>
+                <button class="btn" onclick="flipImage('vertical')">
+                    ↕️ Flip Vertical
+                </button>
+                <button class="btn download-btn" onclick="downloadImage()" id="downloadBtn" disabled>
+                    ⬇️ Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRotation = 0;
+        let currentScaleX = 1;
+        let currentScaleY = 1;
+        let originalImage = null;
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    originalImage = new Image();
+                    originalImage.src = e.target.result;
+                    originalImage.onload = () => {
+                        resetTransformations();
+                        updatePreview();
+                        document.getElementById('downloadBtn').disabled = false;
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function rotateImage(degrees) {
+            currentRotation += degrees;
+            updatePreview();
+        }
+
+        function flipImage(direction) {
+            if (direction === 'horizontal') {
+                currentScaleX *= -1;
+            } else {
+                currentScaleY *= -1;
+            }
+            updatePreview();
+        }
+
+        function updatePreview() {
+            if (!originalImage) return;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Calculate new dimensions
+            const isRotated = Math.abs(currentRotation % 180) !== 0;
+            const width = isRotated ? originalImage.height : originalImage.width;
+            const height = isRotated ? originalImage.width : originalImage.height;
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            // Transform context
+            ctx.translate(width/2, height/2);
+            ctx.rotate(currentRotation * Math.PI / 180);
+            ctx.scale(currentScaleX, currentScaleY);
+            ctx.translate(-originalImage.width/2, -originalImage.height/2);
+            
+            ctx.drawImage(originalImage, 0, 0);
+            
+            document.getElementById('previewImage').src = canvas.toDataURL();
+        }
+
+        function resetTransformations() {
+            currentRotation = 0;
+            currentScaleX = 1;
+            currentScaleY = 1;
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'transformed-image.png';
+            link.href = document.getElementById('previewImage').src;
+            link.click();
+        }
+    </script>
+</body>
+</html>
