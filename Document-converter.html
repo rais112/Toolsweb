@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Converter</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --background-color: #f5f7fa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            background-color: rgba(0, 153, 255, 0.05);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .preview-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .conversion-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .format-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .format-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        #preview {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .download-btn {
+            background-color: #00cc66;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+            margin: 20px auto;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .upload-section {
+                padding: 20px;
+            }
+            
+            .format-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Document Converter</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" accept=".docx,.odt,.txt">
+            <label for="fileInput" class="upload-label">
+                📁 Drag & Drop or Click to Upload<br>
+                <small>(Supports DOCX, ODT, TXT)</small>
+            </label>
+        </div>
+
+        <div class="preview-section">
+            <h3>Preview:</h3>
+            <div id="preview"></div>
+        </div>
+
+        <div class="conversion-options">
+            <button class="format-btn" data-format="docx">Convert to DOCX</button>
+            <button class="format-btn" data-format="odt">Convert to ODT</button>
+            <button class="format-btn" data-format="txt">Convert to TXT</button>
+        </div>
+
+        <button class="download-btn" id="downloadBtn">Download Converted File</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const downloadBtn = document.getElementById('downloadBtn');
+        let currentFile = null;
+
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            currentFile = file;
+            document.querySelector('.preview-section').style.display = 'block';
+            
+            if (file.type === 'text/plain') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.textContent = e.target.result;
+                };
+                reader.readAsText(file);
+            } else {
+                preview.innerHTML = `
+                    <p>File Name: ${file.name}</p>
+                    <p>File Type: ${file.type || 'Unknown'}</p>
+                    <p>File Size: ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+            }
+        }
+
+        document.querySelectorAll('.format-btn').forEach(btn => {
+            btn.addEventListener('click', () => convertDocument(btn.dataset.format));
+        });
+
+        function convertDocument(targetFormat) {
+            if (!currentFile) {
+                alert('Please select a file first!');
+                return;
+            }
+
+            // In a real implementation, this would send to a conversion API
+            // Here's a mock implementation
+            const convertedContent = targetFormat === 'txt' ? 
+                "Mock converted text content" : 
+                new Blob([currentFile], {type: `application/${targetFormat}`});
+
+            const downloadUrl = URL.createObjectURL(convertedContent);
+            downloadBtn.style.display = 'block';
+            downloadBtn.onclick = () => {
+                const newName = currentFile.name.replace(/\.[^/.]+$/, "") + `.${targetFormat}`;
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = newName;
+                a.click();
+                URL.revokeObjectURL(downloadUrl);
+            };
+        }
+
+        // Drag and drop functionality
+        const uploadSection = document.querySelector('.upload-section');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.style.backgroundColor = 'rgba(0, 153, 255, 0.1)';
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.style.backgroundColor = 'transparent';
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.style.backgroundColor = 'transparent';
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(e);
+        });
+    </script>
+</body>
+</html>
