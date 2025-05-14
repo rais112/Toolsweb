@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSign PDF Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .upload-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px dashed var(--primary-color);
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .signature-pad {
+            border: 2px solid var(--primary-color);
+            margin: 1rem 0;
+            touch-action: none;
+        }
+
+        .signature-options {
+            margin: 1rem 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab-button {
+            padding: 0.5rem 1rem;
+            background: #e9f5ff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .text-signature {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.5rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .download-btn {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 0.5rem;
+            }
+
+            .upload-section {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="tool-header">eSign PDF Tool</h1>
+        
+        <div class="upload-section">
+            <div class="file-input" id="dropZone">
+                Drag & Drop PDF or Click to Upload
+                <input type="file" id="pdfInput" accept=".pdf" hidden>
+            </div>
+            
+            <div class="signature-options">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('draw')">Draw Signature</button>
+                    <button class="tab-button" onclick="showTab('text')">Text Signature</button>
+                </div>
+                
+                <div id="drawTab" class="tab-content">
+                    <canvas class="signature-pad" id="signaturePad" width="400" height="200"></canvas>
+                    <button onclick="clearSignature()">Clear Signature</button>
+                </div>
+                
+                <div id="textTab" class="tab-content" style="display: none;">
+                    <input type="text" class="text-signature" id="textSignature" 
+                           placeholder="Enter your signature" maxlength="30">
+                </div>
+            </div>
+            
+            <button onclick="addSignatureToPDF()">Add Signature to PDF</button>
+            <a class="download-btn" id="downloadLink">Download Signed PDF</a>
+        </div>
+    </div>
+
+    <script>
+        const pdfInput = document.getElementById('pdfInput');
+        const dropZone = document.getElementById('dropZone');
+        const signaturePad = document.getElementById('signaturePad');
+        const downloadLink = document.getElementById('downloadLink');
+        let isDrawing = false;
+        let ctx = signaturePad.getContext('2d');
+
+        // Initialize canvas
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+
+        // Signature drawing functionality
+        signaturePad.addEventListener('mousedown', startDrawing);
+        signaturePad.addEventListener('mousemove', draw);
+        signaturePad.addEventListener('mouseup', endDrawing);
+        signaturePad.addEventListener('mouseout', endDrawing);
+
+        // Touch events for mobile
+        signaturePad.addEventListener('touchstart', startDrawing);
+        signaturePad.addEventListener('touchmove', draw);
+        signaturePad.addEventListener('touchend', endDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = signaturePad.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(
+                (e.clientX || e.touches[0].clientX) - rect.left,
+                (e.clientY || e.touches[0].clientY) - rect.top
+            );
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = signaturePad.getBoundingClientRect();
+            ctx.lineTo(
+                (e.clientX || e.touches[0].clientX) - rect.left,
+                (e.clientY || e.touches[0].clientY) - rect.top
+            );
+            ctx.stroke();
+            e.preventDefault();
+        }
+
+        function endDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, signaturePad.width, signaturePad.height);
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => 
+                btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => 
+                content.style.display = 'none');
+            
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            event.target.classList.add('active');
+        }
+
+        async function addSignatureToPDF() {
+            const file = pdfInput.files[0];
+            if (!file) {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            try {
+                // Get signature image
+                let signatureImage;
+                if (document.getElementById('drawTab').style.display !== 'none') {
+                    if (isCanvasBlank(signaturePad)) {
+                        alert('Please draw your signature');
+                        return;
+                    }
+                    signatureImage = await canvasToImage();
+                } else {
+                    const text = document.getElementById('textSignature').value;
+                    if (!text.trim()) {
+                        alert('Please enter your signature text');
+                        return;
+                    }
+                    signatureImage = await textToImage(text);
+                }
+
+                // Process PDF
+                const pdfBytes = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                const page = pdfDoc.getPages()[0];
+                
+                // Embed signature image
+                const pngImage = await pdfDoc.embedPng(signatureImage);
+                const { width, height } = pngImage.scale(100);
+                page.drawImage(pngImage, {
+                    x: 50,
+                    y: 50,
+                    width,
+                    height,
+                });
+
+                // Save and download
+                const processedBytes = await pdfDoc.save();
+                const blob = new Blob([processedBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                
+                downloadLink.href = url;
+                downloadLink.download = `signed_${file.name}`;
+                downloadLink.style.display = 'block';
+            } catch (error) {
+                alert(`Error processing PDF: ${error.message}`);
+            }
+        }
+
+        function isCanvasBlank(canvas) {
+            const blank = document.createElement('canvas');
+            blank.width = canvas.width;
+            blank.height = canvas.height;
+            return canvas.toDataURL() === blank.toDataURL();
+        }
+
+        function canvasToImage() {
+            return new Promise((resolve) => {
+                signaturePad.toBlob(blob => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            });
+        }
+
+        function textToImage(text) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.font = '40px "Dancing Script", cursive';
+                ctx.fillStyle = '#000000';
+                ctx.fillText(text, 10, 60);
+                
+                canvas.toBlob(blob => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            });
+        }
+
+        // Drag & drop handlers (same as previous implementation)
+        dropZone.addEventListener('click', () => pdfInput.click());
+        dropZone.addEventListener('dragover', (e) => e.preventDefault());
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file.type === 'application/pdf') {
+                pdfInput.files = e.dataTransfer.files;
+            }
+        });
+    </script>
+</body>
+</html>
