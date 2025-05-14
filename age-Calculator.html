@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age Calculator</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+            margin: 1rem;
+        }
+
+        .calculator-header {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .age-result {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+
+        .download-btn {
+            display: none;
+            margin-top: 1.5rem;
+            background: #e9f5ff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .result-preview {
+            border: 2px dashed var(--primary-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .age-result {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="calculator-header">Age Calculator</h1>
+        
+        <div class="input-group">
+            <input type="date" id="birthDate" max="">
+            <button onclick="calculateAge()">Calculate Age</button>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-preview" id="previewArea">
+                <p id="ageResult">Select your date of birth to begin</p>
+            </div>
+            <button class="download-btn" id="downloadBtn" onclick="downloadResult()">
+                Download Age Certificate
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Set max date to today
+        document.getElementById('birthDate').max = new Date().toISOString().split('T')[0];
+
+        function calculateAge() {
+            const birthDate = new Date(document.getElementById('birthDate').value);
+            const today = new Date();
+            
+            if (!birthDate.getTime()) {
+                alert('Please select a valid date of birth');
+                return;
+            }
+
+            let years = today.getFullYear() - birthDate.getFullYear();
+            let months = today.getMonth() - birthDate.getMonth();
+            let days = today.getDate() - birthDate.getDate();
+
+            if (days < 0) {
+                months--;
+                days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            }
+
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            const ageString = `
+                <span style="font-size: 1.8em; color: ${getComputedStyle(document.documentElement)
+                    .getPropertyValue('--primary-color')}">
+                    ${years}
+                </span> years,
+                <span style="font-size: 1.5em">${months}</span> months, 
+                <span style="font-size: 1.5em">${days}</span> days
+            `;
+
+            document.getElementById('ageResult').innerHTML = ageString;
+            document.getElementById('downloadBtn').style.display = 'block';
+        }
+
+        function downloadResult() {
+            html2canvas(document.querySelector("#previewArea")).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'age-certificate.png';
+                link.href = canvas.toDataURL('image/png', 0.8);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
