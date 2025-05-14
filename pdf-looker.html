@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Security Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .upload-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px dashed var(--primary-color);
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .preview-section {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .options-section {
+            margin: 1rem 0;
+        }
+
+        .option-group {
+            margin: 1rem 0;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .download-btn {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 0.5rem;
+            }
+
+            .upload-section {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="tool-header">PDF Security Tool</h1>
+        
+        <div class="upload-section">
+            <div class="file-input" id="dropZone">
+                Drag & Drop PDF or Click to Upload
+                <input type="file" id="pdfInput" accept=".pdf" hidden>
+            </div>
+            <div class="preview-section" id="preview">
+                <!-- PDF preview will be shown here -->
+            </div>
+            <div class="options-section">
+                <div class="option-group">
+                    <select id="operationMode">
+                        <option value="lock">Lock PDF</option>
+                        <option value="unlock">Unlock PDF</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <button onclick="processPDF()">Process PDF</button>
+                <a class="download-btn" id="downloadLink">Download Processed PDF</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pdfInput = document.getElementById('pdfInput');
+        const dropZone = document.getElementById('dropZone');
+        const preview = document.getElementById('preview');
+        const operationMode = document.getElementById('operationMode');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Drag & drop handlers
+        dropZone.addEventListener('click', () => pdfInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.backgroundColor = '#e9f5ff';
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.backgroundColor = 'white';
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.backgroundColor = 'white';
+            const file = e.dataTransfer.files[0];
+            if (file.type === 'application/pdf') {
+                pdfInput.files = e.dataTransfer.files;
+                showPreview(file);
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) showPreview(file);
+        });
+
+        function showPreview(file) {
+            preview.innerHTML = `
+                <p>Selected PDF: ${file.name}</p>
+                <p>Size: ${(file.size / 1024).toFixed(2)} KB</p>
+            `;
+        }
+
+        async function processPDF() {
+            const file = pdfInput.files[0];
+            const password = document.getElementById('password').value;
+            
+            if (!file) {
+                alert('Please select a PDF file');
+                return;
+            }
+
+            try {
+                const pdfBytes = await file.arrayBuffer();
+                let processedPdf;
+
+                if (operationMode.value === 'lock') {
+                    if (!password) {
+                        alert('Please enter a password for locking');
+                        return;
+                    }
+                    const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                    const processedBytes = await pdfDoc.save({
+                        permissions: {
+                            printing: 'lowResolution',
+                            modifying: false,
+                            copying: false,
+                            annotating: false,
+                            fillingForms: false,
+                            contentAccessibility: false,
+                            documentAssembly: false
+                        },
+                        password: password,
+                    });
+                    processedPdf = new Blob([processedBytes], { type: 'application/pdf' });
+                } else {
+                    const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, { password: password });
+                    const processedBytes = await pdfDoc.save();
+                    processedPdf = new Blob([processedBytes], { type: 'application/pdf' });
+                }
+
+                const url = URL.createObjectURL(processedPdf);
+                downloadLink.href = url;
+                downloadLink.download = `processed_${file.name}`;
+                downloadLink.style.display = 'block';
+                downloadLink.textContent = `Download ${operationMode.value === 'lock' ? 'Locked' : 'Unlocked'} PDF`;
+            } catch (error) {
+                alert(`Error processing PDF: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
