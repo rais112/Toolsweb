@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Calculator</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .calculator {
+            background: var(--secondary-color);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .display {
+            background: #f8f9fa;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: right;
+        }
+
+        #history {
+            font-size: 14px;
+            color: #666;
+            min-height: 20px;
+            margin-bottom: 5px;
+        }
+
+        #result {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary-color);
+            word-wrap: break-word;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            background: var(--secondary-color);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 15px;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+        }
+
+        .operator {
+            background: #e9f5ff;
+        }
+
+        .download-btn {
+            margin-top: 15px;
+            width: 100%;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .calculator {
+                margin: 10px;
+                padding: 10px;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 1em;
+            }
+
+            .buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">
+            <div id="history"></div>
+            <div id="result">0</div>
+        </div>
+        <div class="buttons">
+            <!-- Scientific Functions -->
+            <button class="operator" onclick="addOperation('sin(')">sin</button>
+            <button class="operator" onclick="addOperation('cos(')">cos</button>
+            <button class="operator" onclick="addOperation('tan(')">tan</button>
+            <button class="operator" onclick="addOperation('log(')">log</button>
+            <button class="operator" onclick="addOperation('ln(')">ln</button>
+            
+            <button class="operator" onclick="addOperation('√(')">√</button>
+            <button class="operator" onclick="addOperation('^')">x^y</button>
+            <button class="operator" onclick="addOperation('π')">π</button>
+            <button class="operator" onclick="addOperation('e')">e</button>
+            <button class="operator" onclick="addOperation('(')">(</button>
+            
+            <button class="operator" onclick="addOperation(')')">)</button>
+            <button class="operator" onclick="addOperation('!')">!</button>
+            <button class="operator" onclick="addOperation('deg')">DEG</button>
+            <button class="operator" onclick="clearDisplay()">C</button>
+            <button class="operator" onclick="backspace()">⌫</button>
+            
+            <!-- Numbers and Basic Operators -->
+            <button onclick="addNumber('7')">7</button>
+            <button onclick="addNumber('8')">8</button>
+            <button onclick="addNumber('9')">9</button>
+            <button class="operator" onclick="addOperation('/')">/</button>
+            <button class="operator" onclick="addOperation('%')">%</button>
+            
+            <button onclick="addNumber('4')">4</button>
+            <button onclick="addNumber('5')">5</button>
+            <button onclick="addNumber('6')">6</button>
+            <button class="operator" onclick="addOperation('*')">×</button>
+            <button class="operator" onclick="addOperation('10^')">10^x</button>
+            
+            <button onclick="addNumber('1')">1</button>
+            <button onclick="addNumber('2')">2</button>
+            <button onclick="addNumber('3')">3</button>
+            <button class="operator" onclick="addOperation('-')">-</button>
+            <button class="operator" onclick="addOperation('1/')">1/x</button>
+            
+            <button onclick="addNumber('0')">0</button>
+            <button onclick="addNumber('.')">.</button>
+            <button onclick="calculate()">=</button>
+            <button class="operator" onclick="addOperation('+')">+</button>
+            <button class="operator" onclick="toggleSign()">±</button>
+        </div>
+        <button class="download-btn" id="downloadBtn" onclick="captureResult()">Download Calculation</button>
+    </div>
+
+    <script>
+        let currentValue = '0';
+        let history = '';
+
+        function updateDisplay() {
+            document.getElementById('result').textContent = currentValue;
+            document.getElementById('history').textContent = history;
+        }
+
+        function addNumber(num) {
+            if (currentValue === '0') currentValue = '';
+            currentValue += num;
+            updateDisplay();
+        }
+
+        function addOperation(op) {
+            if (op === 'deg') {
+                currentValue = (parseFloat(currentValue) * Math.PI / 180).toString();
+            } else {
+                history += currentValue + op;
+                currentValue = '0';
+            }
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentValue = '0';
+            history = '';
+            updateDisplay();
+        }
+
+        function backspace() {
+            currentValue = currentValue.slice(0, -1) || '0';
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            currentValue = currentValue.startsWith('-') ? 
+                currentValue.slice(1) : '-' + currentValue;
+            updateDisplay();
+        }
+
+        function calculate() {
+            try {
+                let expression = history + currentValue;
+                expression = expression
+                    .replace(/√/g, 'Math.sqrt')
+                    .replace(/π/g, Math.PI)
+                    .replace(/e/g, Math.E)
+                    .replace(/\^/g, '**')
+                    .replace(/log/g, 'Math.log10')
+                    .replace(/ln/g, 'Math.log')
+                    .replace(/sin/g, 'Math.sin')
+                    .replace(/cos/g, 'Math.cos')
+                    .replace(/tan/g, 'Math.tan')
+                    .replace(/!/g, factorial);
+
+                const result = eval(expression);
+                history = expression + '=';
+                currentValue = result.toString();
+                document.getElementById('downloadBtn').style.display = 'block';
+                updateDisplay();
+            } catch (error) {
+                currentValue = 'Error';
+                updateDisplay();
+            }
+        }
+
+        function factorial(n) {
+            n = parseInt(n);
+            if (n < 0) throw new Error();
+            return n <= 1 ? 1 : n * factorial(n - 1);
+        }
+
+        function captureResult() {
+            html2canvas(document.querySelector(".display")).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'calculation.png';
+                link.href = canvas.toDataURL('image/png', 0.8);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
