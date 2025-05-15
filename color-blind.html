@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Blindness Simulator - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .simulator-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 20px;
+            background: var(--accent-color);
+        }
+
+        #image-upload {
+            display: none;
+        }
+
+        .upload-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .filter-btn {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 500px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: none;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+            display: none;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section {
+                padding: 1rem;
+            }
+
+            .filters {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <h1>Color Blindness Simulator</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="image-upload" accept="image/*">
+            <label for="image-upload" class="upload-label">
+                📁 Upload Image<br>
+                <small>(Click or drag image)</small>
+            </label>
+            <img id="image-preview" alt="Preview">
+        </div>
+
+        <div class="filters" id="filters">
+            <button class="filter-btn" data-filter="normal">Normal Vision</button>
+            <button class="filter-btn" data-filter="protanopia">Protanopia</button>
+            <button class="filter-btn" data-filter="deuteranopia">Deuteranopia</button>
+            <button class="filter-btn" data-filter="tritanopia">Tritanopia</button>
+            <button class="filter-btn" data-filter="achromatopsia">Achromatopsia</button>
+        </div>
+
+        <button id="download-btn" onclick="downloadImage()">Download Image</button>
+        <div class="notification" id="notification">Image processed!</div>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const filters = document.getElementById('filters');
+        const downloadBtn = document.getElementById('download-btn');
+        const notification = document.getElementById('notification');
+        let currentFilter = 'normal';
+
+        const colorMatrices = {
+            normal: [
+                1, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, 1, 0
+            ],
+            protanopia: [
+                0.567, 0.433, 0, 0, 0,
+                0.558, 0.442, 0, 0, 0,
+                0, 0.242, 0.758, 0, 0,
+                0, 0, 0, 1, 0
+            ],
+            deuteranopia: [
+                0.625, 0.375, 0, 0, 0,
+                0.7, 0.3, 0, 0, 0,
+                0, 0.3, 0.7, 0, 0,
+                0, 0, 0, 1, 0
+            ],
+            tritanopia: [
+                0.95, 0.05, 0, 0, 0,
+                0, 0.433, 0.567, 0, 0,
+                0, 0.475, 0.525, 0, 0,
+                0, 0, 0, 1, 0
+            ],
+            achromatopsia: [
+                0.299, 0.587, 0.114, 0, 0,
+                0.299, 0.587, 0.114, 0, 0,
+                0.299, 0.587, 0.114, 0, 0,
+                0, 0, 0, 1, 0
+            ]
+        };
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                    downloadBtn.style.display = 'inline-block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        filters.addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-btn')) {
+                document.querySelectorAll('.filter-btn').forEach(btn => 
+                    btn.classList.remove('active'));
+                e.target.classList.add('active');
+                currentFilter = e.target.dataset.filter;
+                applyColorFilter();
+            }
+        });
+
+        function applyColorFilter() {
+            if (!imagePreview.src) return;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imagePreview.naturalWidth;
+            canvas.height = imagePreview.naturalHeight;
+            
+            ctx.drawImage(imagePreview, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            const matrix = colorMatrices[currentFilter];
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                data[i] = matrix[0] * r + matrix[1] * g + matrix[2] * b + matrix[3] * 255;
+                data[i + 1] = matrix[5] * r + matrix[6] * g + matrix[7] * b + matrix[8] * 255;
+                data[i + 2] = matrix[10] * r + matrix[11] * g + matrix[12] * b + matrix[13] * 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            imagePreview.src = canvas.toDataURL();
+            showNotification('Filter applied!');
+        }
+
+        function downloadImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = imagePreview.naturalWidth;
+            canvas.height = imagePreview.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(imagePreview, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = 'colorblind-preview.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 2000);
+        }
+    </script>
+</body>
+</html>
