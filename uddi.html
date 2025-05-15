@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUID Generator - Multi-Tool</title>
+    <style>
+        /* Previous CSS remains unchanged */
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .uuid-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: var(--accent-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        select {
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            background: var(--secondary-color);
+        }
+
+        .uuid-list {
+            background: var(--secondary-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .uuid-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--accent-color);
+            border-radius: 4px;
+            word-break: break-all;
+        }
+
+        .preview-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        canvas {
+            max-width: 100%;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            button, select {
+                width: 100%;
+            }
+            
+            .uuid-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="uuid-container">
+        <h1>UUID Generator</h1>
+        
+        <div class="controls">
+            <select id="quantity">
+                <option value="1">1 UUID</option>
+                <option value="5">5 UUIDs</option>
+                <option value="10">10 UUIDs</option>
+            </select>
+            <button onclick="generateUUIDs()">Generate UUIDs</button>
+            <button onclick="downloadUUIDs()" id="download-btn" style="display: none;">Download as Image</button>
+        </div>
+
+        <div class="uuid-list" id="uuid-list"></div>
+        <div class="preview-section">
+            <canvas id="uuid-preview"></canvas>
+        </div>
+        <div class="notification" id="notification">Copied!</div>
+    </div>
+
+    <script>
+        // Fixed UUID generation function
+        function generateUUIDs() {
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const uuidList = document.getElementById('uuid-list');
+            uuidList.innerHTML = '';
+            
+            try {
+                for(let i = 0; i < quantity; i++) {
+                    const uuid = crypto.randomUUID();
+                    const uuidElement = document.createElement('div');
+                    uuidElement.className = 'uuid-item';
+                    uuidElement.innerHTML = `
+                        <span>${uuid}</span>
+                        <button onclick="copyToClipboard('${uuid}')">Copy</button>
+                    `;
+                    uuidList.appendChild(uuidElement);
+                }
+                
+                document.getElementById('download-btn').style.display = 'inline-block';
+                generatePreviewImage();
+            } catch (error) {
+                alert('Error generating UUIDs: ' + error.message);
+            }
+        }
+
+        function generatePreviewImage() {
+            const canvas = document.getElementById('uuid-preview');
+            const ctx = canvas.getContext('2d');
+            const uuidItems = document.querySelectorAll('.uuid-item span');
+            
+            canvas.width = 800;
+            canvas.height = Math.max(400, uuidItems.length * 40);
+            ctx.fillStyle = '#ffffff'; // Using direct color instead of CSS variable
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#000';
+            ctx.font = '16px Arial';
+            ctx.textBaseline = 'top';
+
+            uuidItems.forEach((item, index) => {
+                ctx.fillText(item.textContent, 20, 20 + (index * 40));
+            });
+        }
+
+        function downloadUUIDs() {
+            const canvas = document.getElementById('uuid-preview');
+            const link = document.createElement('a');
+            link.download = 'uuids.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showNotification('UUID copied!');
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 2000);
+        }
+
+        // Initial generation on page load
+        window.addEventListener('DOMContentLoaded', generateUUIDs);
+    </script>
+</body>
+</html>
