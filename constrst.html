@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrast Checker - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+            --error-color: #ff4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .contrast-checker {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .color-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .color-picker {
+            position: relative;
+            padding: 15px;
+            border-radius: 8px;
+            background: var(--accent-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 50px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .hex-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .preview {
+            display: flex;
+            height: 150px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 2px solid var(--primary-color);
+        }
+
+        .preview-text {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .results {
+            background: var(--accent-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .wcag-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: var(--secondary-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .error {
+            color: var(--error-color);
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .color-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-text {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="contrast-checker">
+        <h1>WCAG Contrast Checker</h1>
+        
+        <div class="color-inputs">
+            <div class="color-picker">
+                <label>Foreground Color</label>
+                <input type="color" id="fg-color" value="#000000">
+                <input type="text" class="hex-input" id="fg-hex" maxlength="7" value="#000000">
+            </div>
+            
+            <div class="color-picker">
+                <label>Background Color</label>
+                <input type="color" id="bg-color" value="#ffffff">
+                <input type="text" class="hex-input" id="bg-hex" maxlength="7" value="#ffffff">
+            </div>
+        </div>
+
+        <div class="preview">
+            <div class="preview-text" id="preview-text" style="color: #000000; background: #ffffff">
+                Sample Text
+            </div>
+        </div>
+
+        <div class="results">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">Results</h3>
+            <div id="contrast-ratio">Contrast Ratio: 21:1</div>
+            <div id="wcag-results" style="margin-top: 15px;"></div>
+        </div>
+
+        <button onclick="downloadContrastPreview()">Download Preview</button>
+        <div class="error" id="error-message">Invalid color format!</div>
+    </div>
+
+    <script>
+        const fgColor = document.getElementById('fg-color');
+        const bgColor = document.getElementById('bg-color');
+        const fgHex = document.getElementById('fg-hex');
+        const bgHex = document.getElementById('bg-hex');
+        const previewText = document.getElementById('preview-text');
+        const errorMessage = document.getElementById('error-message');
+
+        function hexToRGB(hex) {
+            hex = hex.replace(/^#/, '');
+            if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+            const num = parseInt(hex, 16);
+            return [num >> 16, num >> 8 & 255, num & 255];
+        }
+
+        function getLuminance(r, g, b) {
+            const a = [r, g, b].map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+        }
+
+        function updateContrast() {
+            errorMessage.style.display = 'none';
+            
+            try {
+                const fg = hexToRGB(fgHex.value);
+                const bg = hexToRGB(bgHex.value);
+                
+                const lum1 = getLuminance(...fg);
+                const lum2 = getLuminance(...bg);
+                const contrast = (Math.max(lum1, lum2) + 0.05) / (Math.min(lum1, lum2) + 0.05);
+                const ratio = contrast.toFixed(2);
+
+                previewText.style.color = fgHex.value;
+                previewText.style.backgroundColor = bgHex.value;
+                document.getElementById('contrast-ratio').textContent = `Contrast Ratio: ${ratio}:1`;
+
+                const wcagResults = document.getElementById('wcag-results');
+                wcagResults.innerHTML = `
+                    <div class="wcag-badge ${ratio >= 4.5 ? 'pass' : 'fail'}">
+                        AA Normal Text: ${ratio >= 4.5 ? '✅ Pass' : '❌ Fail'}
+                    </div>
+                    <div class="wcag-badge ${ratio >= 3 ? 'pass' : 'fail'}">
+                        AA Large Text: ${ratio >= 3 ? '✅ Pass' : '❌ Fail'}
+                    </div>
+                    <div class="wcag-badge ${ratio >= 7 ? 'pass' : 'fail'}">
+                        AAA Normal Text: ${ratio >= 7 ? '✅ Pass' : '❌ Fail'}
+                    </div>
+                    <div class="wcag-badge ${ratio >= 4.5 ? 'pass' : 'fail'}">
+                        AAA Large Text: ${ratio >= 4.5 ? '✅ Pass' : '❌ Fail'}
+                    </div>
+                `;
+
+            } catch (e) {
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function downloadContrastPreview() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw background
+            ctx.fillStyle = bgHex.value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add text
+            ctx.fillStyle = fgHex.value;
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Sample Text', canvas.width/2, canvas.height/2);
+            
+            // Add contrast ratio
+            ctx.font = '20px Arial';
+            ctx.fillText(`Contrast Ratio: ${document.getElementById('contrast-ratio').textContent.split(': ')[1]}`, 
+                        canvas.width/2, canvas.height/2 + 50);
+
+            const link = document.createElement('a');
+            link.download = 'contrast-preview.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        // Event listeners
+        [fgColor, bgColor].forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const hexInput = index === 0 ? fgHex : bgHex;
+                hexInput.value = e.target.value;
+                updateContrast();
+            });
+        });
+
+        [fgHex, bgHex].forEach(input => {
+            input.addEventListener('input', (e) => {
+                const colorInput = input === fgHex ? fgColor : bgColor;
+                const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
+                if (/^#([0-9A-F]{3}){1,2}$/i.test(value)) {
+                    colorInput.value = value;
+                    errorMessage.style.display = 'none';
+                    updateContrast();
+                } else {
+                    errorMessage.style.display = 'block';
+                }
+            });
+        });
+
+        // Initial calculation
+        updateContrast();
+    </script>
+</body>
+</html>
