@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Tools - Currency & GST Calculator</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            width: 90%;
+            margin: 1rem;
+        }
+
+        .tool-header {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        .tools-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .tool-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 2px solid var(--primary-color);
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--secondary-color);
+            border-radius: 8px;
+        }
+
+        .result-preview {
+            border: 2px dashed var(--primary-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 8px;
+        }
+
+        .conversion-result {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .download-btn {
+            display: none;
+            margin-top: 1.5rem;
+            background: #e9f5ff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .tools-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="tool-header">Financial Tools</h1>
+        
+        <div class="tools-container">
+            <!-- Currency Converter -->
+            <div class="tool-section">
+                <h2>Currency Converter</h2>
+                <div class="input-group">
+                    <input type="number" id="currencyAmount" placeholder="Enter amount" step="0.01">
+                    <select id="fromCurrency">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="BDT">BDT</option>
+                        <option value="INR">INR</option>
+                    </select>
+                    <select id="toCurrency">
+                        <option value="BDT">BDT</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="INR">INR</option>
+                    </select>
+                    <button onclick="convertCurrency()">Convert Currency</button>
+                </div>
+                <div class="result-container">
+                    <div class="result-preview" id="currencyPreview">
+                        <p id="conversionResult">-</p>
+                        <p id="exchangeRate">Exchange Rate: -</p>
+                    </div>
+                    <button class="download-btn" onclick="downloadCurrencyResult()">
+                        Download Conversion
+                    </button>
+                </div>
+            </div>
+
+            <!-- GST Calculator -->
+            <div class="tool-section">
+                <h2>GST Calculator</h2>
+                <div class="input-group">
+                    <select id="calculationType">
+                        <option value="add">Add GST</option>
+                        <option value="subtract">Subtract GST</option>
+                    </select>
+                    <input type="number" id="gstAmount" placeholder="Enter Amount">
+                    <input type="number" id="gstRate" placeholder="GST Rate (%)" step="0.1">
+                    <button onclick="calculateGST()">Calculate GST</button>
+                </div>
+                <div class="result-container">
+                    <div class="result-preview" id="gstPreview">
+                        <p id="netAmount">Net Amount: -</p>
+                        <p id="gstValue">GST Amount: -</p>
+                        <p id="totalGSTAmount">Total Amount: -</p>
+                    </div>
+                    <button class="download-btn" onclick="downloadGSTResult()">
+                        Download GST Calculation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Currency Converter Functions
+        const API_KEY = 'b518a027b43b03ebcab3552a';
+        const BASE_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/`;
+
+        async function convertCurrency() {
+            const amount = parseFloat(document.getElementById('currencyAmount').value);
+            const fromCurrency = document.getElementById('fromCurrency').value;
+            const toCurrency = document.getElementById('toCurrency').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter valid amount');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}${fromCurrency}`);
+                const data = await response.json();
+                const rate = data.conversion_rates[toCurrency];
+                const result = (amount * rate).toFixed(2);
+
+                document.getElementById('conversionResult').textContent = 
+                    `${amount} ${fromCurrency} = ${result} ${toCurrency}`;
+                document.getElementById('exchangeRate').textContent = 
+                    `1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}`;
+                document.querySelector('#currencyPreview + .download-btn').style.display = 'block';
+            } catch (error) {
+                alert('Error converting currency');
+            }
+        }
+
+        function downloadCurrencyResult() {
+            html2canvas(document.querySelector("#currencyPreview")).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'currency-conversion.png';
+                link.href = canvas.toDataURL('image/png', 0.8);
+                link.click();
+            });
+        }
+
+        // GST Calculator Functions
+        function calculateGST() {
+            const type = document.getElementById('calculationType').value;
+            const amount = parseFloat(document.getElementById('gstAmount').value);
+            const rate = parseFloat(document.getElementById('gstRate').value);
+
+            if (!amount || !rate || amount <= 0 || rate <= 0) {
+                alert('Please enter valid values');
+                return;
+            }
+
+            let netAmount, gstValue, totalAmount;
+
+            if (type === 'add') {
+                netAmount = amount;
+                gstValue = (amount * rate) / 100;
+                totalAmount = netAmount + gstValue;
+            } else {
+                totalAmount = amount;
+                netAmount = (amount * 100) / (100 + rate);
+                gstValue = totalAmount - netAmount;
+            }
+
+            document.getElementById('netAmount').textContent = `Net Amount: ₹${netAmount.toFixed(2)}`;
+            document.getElementById('gstValue').textContent = `GST Amount: ₹${gstValue.toFixed(2)}`;
+            document.getElementById('totalGSTAmount').textContent = `Total Amount: ₹${totalAmount.toFixed(2)}`;
+            document.querySelector('#gstPreview + .download-btn').style.display = 'block';
+        }
+
+        function downloadGSTResult() {
+            html2canvas(document.querySelector("#gstPreview")).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'gst-calculation.png';
+                link.href = canvas.toDataURL('image/png', 0.8);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
