@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Minifier</title>
+    <style>
+        :root {
+            --primary-color: #007BFF;
+            --background-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .tool-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            min-height: 150px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-container {
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .preview {
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            textarea {
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Code Minifier</h1>
+        <div class="tool-container">
+            <div class="input-group">
+                <label for="codeType">Select Code Type:</label>
+                <select id="codeType">
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="js">JavaScript</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="inputCode">Enter Code:</label>
+                <textarea id="inputCode" placeholder="Paste your code here..."></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="minifyCode()">Minify Code</button>
+                <button onclick="downloadCode()">Download Minified</button>
+            </div>
+
+            <div class="result-container">
+                <label>Minified Preview:</label>
+                <div class="preview" id="minifiedPreview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const minifiers = {
+            html: (code) => code
+                .replace(/<!--[\s\S]*?-->/g, '')
+                .replace(/>\s+</g, '><')
+                .replace(/\s{2,}/g, ' ')
+                .trim(),
+
+            css: (code) => code
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/:\s+/g, ':')
+                .replace(/{\s+/g, '{')
+                .replace(/}\s+/g, '}')
+                .replace(/;\s+/g, ';')
+                .trim(),
+
+            js: (code) => code
+                .replace(/\/\/.*/g, '')
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/\n/g, '')
+                .replace(/{\s+/g, '{')
+                .replace(/}\s+/g, '}')
+                .replace(/;\s+/g, ';')
+                .trim()
+        };
+
+        function minifyCode() {
+            const codeType = document.getElementById('codeType').value;
+            const input = document.getElementById('inputCode').value;
+            
+            if (!input.trim()) {
+                alert('Please enter some code to minify!');
+                return;
+            }
+
+            const minified = minifiers[codeType](input);
+            document.getElementById('minifiedPreview').textContent = minified;
+        }
+
+        function downloadCode() {
+            const codeType = document.getElementById('codeType').value;
+            const minified = document.getElementById('minifiedPreview').textContent;
+            
+            if (!minified) {
+                alert('No minified code to download!');
+                return;
+            }
+
+            const blob = new Blob([minified], {type: 'text/plain'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `minified.${codeType}`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Update placeholder text based on code type
+        document.getElementById('codeType').addEventListener('change', function() {
+            const examples = {
+                html: '<!-- Paste HTML here -->\n<div class="example">\n    <p>Sample text</p>\n</div>',
+                css: '/* Paste CSS here */\n.example {\n    color: red;\n    margin: 20px;\n}',
+                js: '// Paste JavaScript here\nfunction example() {\n    console.log("Hello");\n}'
+            };
+            document.getElementById('inputCode').placeholder = examples[this.value];
+        });
+    </script>
+</body>
+</html>
