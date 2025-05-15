@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palette Generator - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .palette-generator {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: var(--accent-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input[type="color"] {
+            width: 80px;
+            height: 50px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .palette-preview {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .color-swatch {
+            position: relative;
+            min-height: 120px;
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.05);
+        }
+
+        .color-code {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .palette-preview {
+                grid-template-columns: 1fr;
+            }
+
+            .color-swatch {
+                min-height: 80px;
+            }
+
+            button {
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="palette-generator">
+        <h1>Color Palette Generator</h1>
+        
+        <div class="controls">
+            <input type="color" id="base-color" value="#0099ff">
+            <button onclick="generatePalette()">Generate Palette</button>
+            <button onclick="downloadPalette()">Download Palette</button>
+        </div>
+
+        <div class="palette-preview" id="palette-preview"></div>
+        <div class="notification" id="notification">Copied!</div>
+    </div>
+
+    <script>
+        function generatePalette() {
+            const baseColor = document.getElementById('base-color').value;
+            const colors = generateHarmonicColors(baseColor);
+            displayPalette(colors);
+        }
+
+        function generateHarmonicColors(baseColor) {
+            const colors = [];
+            const baseHSL = hexToHSL(baseColor);
+            
+            // Generate color variations
+            for (let i = 0; i < 5; i++) {
+                const hue = (baseHSL.h + (i * 72)) % 360;
+                const saturation = baseHSL.s * 100;
+                const lightness = 50 + (i % 2 === 0 ? -15 : 15) * i;
+                
+                colors.push(HSLToHex(
+                    hue,
+                    Math.min(100, saturation),
+                    Math.min(95, Math.max(5, lightness))
+                ));
+            }
+            return colors;
+        }
+
+        function hexToHSL(hex) {
+            hex = hex.replace(/^#/, '');
+            const r = parseInt(hex.substring(0, 2), 16) / 255;
+            const g = parseInt(hex.substring(2, 4), 16) / 255;
+            const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100) / 100,
+                l: Math.round(l * 100) / 100
+            };
+        }
+
+        function HSLToHex(h, s, l) {
+            l /= 100;
+            const a = s * Math.min(l, 1 - l) / 100;
+            const f = n => {
+                const k = (n + h / 30) % 12;
+                const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+        }
+
+        function displayPalette(colors) {
+            const preview = document.getElementById('palette-preview');
+            preview.innerHTML = colors.map(color => `
+                <div class="color-swatch" style="background: ${color}" 
+                     onclick="copyToClipboard('${color}')">
+                    <div class="color-code">${color}</div>
+                </div>
+            `).join('');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showNotification('Color copied!');
+        }
+
+        function downloadPalette() {
+            const colors = Array.from(document.querySelectorAll('.color-swatch'))
+                              .map(swatch => swatch.style.backgroundColor);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
+            
+            const sectionHeight = canvas.height / colors.length;
+            colors.forEach((color, index) => {
+                ctx.fillStyle = color;
+                ctx.fillRect(0, index * sectionHeight, canvas.width, sectionHeight);
+            });
+
+            const link = document.createElement('a');
+            link.download = 'color-palette.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 2000);
+        }
+
+        // Initial generation
+        generatePalette();
+    </script>
+</body>
+</html>
