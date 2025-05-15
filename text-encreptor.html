@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Encryptor/Decryptor</title>
+    <style>
+        :root {
+            --primary-color: #007BFF;
+            --background-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .tool-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        textarea, input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-container {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Text Encryptor/Decryptor</h1>
+        <div class="tool-container">
+            <div class="input-group">
+                <label for="inputText">Enter Text:</label>
+                <textarea id="inputText" rows="4" placeholder="Enter your text here..."></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="method">Select Method:</label>
+                <select id="method">
+                    <option value="caesar">Caesar Cipher</option>
+                    <option value="base64">Base64</option>
+                    <option value="reverse">Reverse Text</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="key">Encryption Key (for Caesar Cipher):</label>
+                <input type="number" id="key" value="3">
+            </div>
+
+            <div class="btn-group">
+                <button onclick="encrypt()">Encrypt</button>
+                <button onclick="decrypt()">Decrypt</button>
+            </div>
+
+            <div class="result-container">
+                <label for="result">Result:</label>
+                <textarea id="result" rows="4" readonly></textarea>
+                <button onclick="downloadText()">Download Result</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Encryption/Decryption methods
+        const methods = {
+            caesar: {
+                encrypt: (text, key) => text.split('').map(char => 
+                    String.fromCharCode(char.charCodeAt(0) + key)).join(''),
+                decrypt: (text, key) => text.split('').map(char => 
+                    String.fromCharCode(char.charCodeAt(0) - key)).join('')
+            },
+            base64: {
+                encrypt: (text) => btoa(text),
+                decrypt: (text) => atob(text)
+            },
+            reverse: {
+                encrypt: (text) => text.split('').reverse().join(''),
+                decrypt: (text) => text.split('').reverse().join('')
+            }
+        };
+
+        function getSelectedMethod() {
+            return document.getElementById('method').value;
+        }
+
+        function encrypt() {
+            const method = getSelectedMethod();
+            const text = document.getElementById('inputText').value;
+            const key = parseInt(document.getElementById('key').value) || 3;
+            
+            const result = methods[method].encrypt(text, key);
+            document.getElementById('result').value = result;
+        }
+
+        function decrypt() {
+            const method = getSelectedMethod();
+            const text = document.getElementById('inputText').value;
+            const key = parseInt(document.getElementById('key').value) || 3;
+            
+            const result = methods[method].decrypt(text, key);
+            document.getElementById('result').value = result;
+        }
+
+        function downloadText() {
+            const text = document.getElementById('result').value;
+            const blob = new Blob([text], {type: 'text/plain'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'encrypted-text.txt';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Update UI based on selected method
+        document.getElementById('method').addEventListener('change', function() {
+            const keyField = document.getElementById('key');
+            keyField.disabled = this.value !== 'caesar';
+        });
+    </script>
+</body>
+</html>
