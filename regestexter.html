@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Tester - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --error-color: #ff4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .regex-tester {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+
+        .match-results {
+            margin-bottom: 20px;
+        }
+
+        .error {
+            color: var(--error-color);
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .highlight {
+            background-color: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                margin-bottom: 15px;
+            }
+
+            input, textarea {
+                font-size: 14px;
+            }
+
+            button {
+                width: 100%;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="regex-tester">
+        <h1 style="color: var(--primary-color); margin-bottom: 20px;">Regex Tester</h1>
+        <div class="input-group">
+            <label for="regex-input">Regular Expression</label>
+            <input type="text" id="regex-input" placeholder="Enter your regular expression">
+        </div>
+        <div class="input-group">
+            <label for="test-string">Test String</label>
+            <textarea id="test-string" rows="6" placeholder="Enter text to test against"></textarea>
+        </div>
+        <button onclick="testRegex()">Test Regex</button>
+        
+        <div class="results">
+            <div class="match-results">
+                <h3 style="color: var(--primary-color); margin-bottom: 10px;">Matches</h3>
+                <div id="matches"></div>
+            </div>
+            <div class="error" id="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        function testRegex() {
+            const regexInput = document.getElementById('regex-input').value;
+            const testString = document.getElementById('test-string').value;
+            const matchesDiv = document.getElementById('matches');
+            const errorDiv = document.getElementById('error-message');
+
+            // Clear previous results
+            matchesDiv.innerHTML = '';
+            errorDiv.textContent = '';
+
+            try {
+                const regex = new RegExp(regexInput, 'g');
+                let match;
+                let results = [];
+                
+                while ((match = regex.exec(testString)) !== null) {
+                    results.push({
+                        match: match[0],
+                        index: match.index,
+                        groups: match.slice(1)
+                    });
+                }
+
+                if (results.length === 0) {
+                    matchesDiv.innerHTML = 'No matches found';
+                    return;
+                }
+
+                let highlightedString = testString;
+                results.reverse().forEach(m => {
+                    highlightedString = 
+                        highlightedString.slice(0, m.index) +
+                        `<span class="highlight">${m.match}</span>` +
+                        highlightedString.slice(m.index + m.match.length);
+                });
+
+                matchesDiv.innerHTML = `
+                    <div style="margin-bottom: 15px;">${results.length} matches found:</div>
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        ${highlightedString}
+                    </div>
+                    <div style="margin-top: 15px;">
+                        ${results.map((m, i) => `
+                            <div style="margin-bottom: 10px;">
+                                <strong>Match ${i + 1}:</strong> ${m.match}<br>
+                                <small>Position: ${m.index}</small>
+                                ${m.groups.length ? `<br><small>Groups: ${m.groups.join(', ')}</small>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                errorDiv.textContent = `Error: ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
