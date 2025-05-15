@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEX-RGB Converter - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+            --error-color: #ff4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .converter-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .color-preview {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid var(--primary-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .error {
+            color: var(--error-color);
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .conversion-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+        }
+
+        @media (min-width: 768px) {
+            .input-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            
+            button {
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="converter-container">
+        <h1>HEX ↔ RGB Converter</h1>
+        
+        <div class="input-row">
+            <div class="input-group">
+                <label for="hex-input">HEX Color</label>
+                <input type="text" id="hex-input" placeholder="#FFFFFF or FFFFFF" maxlength="7">
+            </div>
+            
+            <div class="input-group">
+                <label for="rgb-input">RGB Color</label>
+                <input type="text" id="rgb-input" placeholder="rgb(255, 255, 255)">
+            </div>
+        </div>
+
+        <div class="color-preview" id="color-preview"></div>
+
+        <div class="conversion-result">
+            <div id="result-text"></div>
+            <button onclick="copyToClipboard()">Copy Color Code</button>
+            <button onclick="downloadColor()">Download Color Swatch</button>
+        </div>
+
+        <div class="error" id="error-message">Invalid color format!</div>
+    </div>
+
+    <script>
+        const hexInput = document.getElementById('hex-input');
+        const rgbInput = document.getElementById('rgb-input');
+        const colorPreview = document.getElementById('color-preview');
+        const errorMessage = document.getElementById('error-message');
+        const resultText = document.getElementById('result-text');
+
+        function hexToRgb(hex) {
+            hex = hex.replace(/^#/, '');
+            if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+            const num = parseInt(hex, 16);
+            return [num >> 16, num >> 8 & 255, num & 255];
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('').toUpperCase();
+        }
+
+        function updateColorPreview(color) {
+            colorPreview.style.backgroundColor = color;
+            resultText.textContent = `Current Color: ${color}`;
+        }
+
+        function handleHexInput() {
+            errorMessage.style.display = 'none';
+            const hex = hexInput.value;
+            if (/^#?([0-9A-F]{3}){1,2}$/i.test(hex)) {
+                const [r, g, b] = hexToRgb(hex);
+                rgbInput.value = `rgb(${r}, ${g}, ${b})`;
+                updateColorPreview(`#${hex.replace('#', '')}`);
+            } else {
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function handleRgbInput() {
+            errorMessage.style.display = 'none';
+            const rgb = rgbInput.value.match(/(\d+),\s*(\d+),\s*(\d+)/);
+            if (rgb) {
+                const [r, g, b] = rgb.slice(1).map(Number);
+                if ([r, g, b].every(x => x >= 0 && x <= 255)) {
+                    hexInput.value = rgbToHex(r, g, b);
+                    updateColorPreview(`rgb(${r}, ${g}, ${b})`);
+                    return;
+                }
+            }
+            errorMessage.style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            const text = colorPreview.style.backgroundColor;
+            navigator.clipboard.writeText(text);
+            alert('Color code copied to clipboard!');
+        }
+
+        function downloadColor() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = colorPreview.style.backgroundColor;
+            ctx.fillRect(0, 0, 100, 100);
+            
+            const link = document.createElement('a');
+            link.download = 'color-swatch.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        // Event listeners
+        hexInput.addEventListener('input', handleHexInput);
+        rgbInput.addEventListener('input', handleRgbInput);
+    </script>
+</body>
+</html>
