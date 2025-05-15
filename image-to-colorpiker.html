@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Picker - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .color-picker-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 20px;
+            background: var(--accent-color);
+        }
+
+        #image-upload {
+            display: none;
+        }
+
+        .upload-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .color-swatch {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.05);
+        }
+
+        #download-btn {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section {
+                padding: 1rem;
+            }
+
+            .color-palette {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="color-picker-container">
+        <h1>Image Color Picker</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="image-upload" accept="image/*">
+            <label for="image-upload" class="upload-label">
+                📁 Upload Image<br>
+                <small>(Click or drag image)</small>
+            </label>
+            <img id="image-preview" alt="Preview">
+        </div>
+
+        <button id="download-btn" onclick="compressImage()">Download Compressed Image</button>
+        
+        <div class="color-palette" id="color-palette"></div>
+        <div class="notification" id="notification">Copied!</div>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const colorPalette = document.getElementById('color-palette');
+        const downloadBtn = document.getElementById('download-btn');
+        const notification = document.getElementById('notification');
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                    downloadBtn.style.display = 'inline-block';
+                    extractColors(imagePreview);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function extractColors(img) {
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+                const colorCount = {};
+
+                // Sample pixels at intervals to get dominant colors
+                for (let i = 0; i < pixels.length; i += 16) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+                    const color = `rgb(${r}, ${g}, ${b})`;
+                    
+                    colorCount[color] = (colorCount[color] || 0) + 1;
+                }
+
+                const sortedColors = Object.entries(colorCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 12);
+
+                displayColors(sortedColors.map(color => color[0]));
+            }
+        }
+
+        function displayColors(colors) {
+            colorPalette.innerHTML = colors.map(color => {
+                const hex = rgbToHex(color);
+                return `
+                    <div class="color-swatch" style="background: ${color}; color: ${getTextColor(hex)}"
+                         onclick="copyToClipboard('${hex}')">
+                        ${hex}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function rgbToHex(rgb) {
+            const values = rgb.match(/\d+/g);
+            const hex = values.map(x => {
+                const val = parseInt(x).toString(16);
+                return val.length === 1 ? '0' + val : val;
+            }).join('');
+            return `#${hex.toUpperCase()}`;
+        }
+
+        function getTextColor(hex) {
+            const r = parseInt(hex.substr(1, 2), 16);
+            const g = parseInt(hex.substr(3, 2), 16);
+            const b = parseInt(hex.substr(5, 2), 16);
+            return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000000' : '#ffffff';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 2000);
+        }
+
+        function compressImage() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imagePreview.naturalWidth;
+            canvas.height = imagePreview.naturalHeight;
+            ctx.drawImage(imagePreview, 0, 0);
+
+            canvas.toBlob((blob) => {
+                const link = document.createElement('a');
+                link.download = 'compressed-image.jpg';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }, 'image/jpeg', 0.7);
+        }
+    </script>
+</body>
+</html>
