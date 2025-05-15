@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Converter | PDF ↔ Word</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+
+        .converter-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .converter-box {
+            flex: 1;
+            min-width: 300px;
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .file-drop-area {
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .file-drop-area:hover {
+            background-color: #e3f2fd;
+        }
+
+        .upload-btn {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .upload-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .preview-section {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .preview-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .download-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .converter-box {
+                width: 100%;
+                margin: 1rem 0;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>File Converter</h1>
+        <p>Convert between PDF and Word documents instantly</p>
+    </div>
+
+    <div class="container">
+        <div class="converter-section">
+            <div class="converter-box">
+                <h2>PDF to Word</h2>
+                <div class="file-drop-area" id="pdfDropArea">
+                    <input type="file" id="pdfInput" accept=".pdf" hidden>
+                    <label for="pdfInput" class="upload-btn">Choose PDF File</label>
+                    <p>or drag and drop here</p>
+                </div>
+                <div class="preview-section" id="pdfPreview"></div>
+                <button class="download-btn" id="wordDownload">Download Word File</button>
+            </div>
+
+            <div class="converter-box">
+                <h2>Word to PDF</h2>
+                <div class="file-drop-area" id="wordDropArea">
+                    <input type="file" id="wordInput" accept=".doc,.docx" hidden>
+                    <label for="wordInput" class="upload-btn">Choose Word File</label>
+                    <p>or drag and drop here</p>
+                </div>
+                <div class="preview-section" id="wordPreview"></div>
+                <button class="download-btn" id="pdfDownload">Download PDF File</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PDF to Word conversion handler
+        document.getElementById('pdfInput').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'pdf');
+        });
+
+        // Word to PDF conversion handler
+        document.getElementById('wordInput').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'word');
+        });
+
+        function handleFileUpload(file, type) {
+            if (!file) return;
+
+            const previewContainer = document.getElementById(`${type}Preview`);
+            const downloadBtn = document.getElementById(`${type === 'pdf' ? 'word' : 'pdf'}Download`);
+
+            // Show file info
+            previewContainer.innerHTML = `
+                <div class="preview-container">
+                    <p>File Name: ${file.name}</p>
+                    <p>File Size: ${(file.size/1024).toFixed(2)} KB</p>
+                </div>
+            `;
+
+            // Simulate conversion process
+            setTimeout(() => {
+                downloadBtn.style.display = 'inline-block';
+            }, 1500);
+        }
+
+        // Drag and drop functionality
+        function setupDragDrop(dropArea, inputElement) {
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.style.backgroundColor = '#e3f2fd';
+            });
+
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.style.backgroundColor = 'white';
+            });
+
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.style.backgroundColor = 'white';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    inputElement.files = files;
+                    handleFileUpload(files[0], inputElement.id.includes('pdf') ? 'pdf' : 'word');
+                }
+            });
+        }
+
+        // Initialize drag and drop for both areas
+        setupDragDrop(document.getElementById('pdfDropArea'), document.getElementById('pdfInput'));
+        setupDragDrop(document.getElementById('wordDropArea'), document.getElementById('wordInput'));
+
+        // Download buttons handlers
+        document.getElementById('wordDownload').addEventListener('click', () => {
+            alert('Conversion functionality requires server-side implementation');
+        });
+
+        document.getElementById('pdfDownload').addEventListener('click', () => {
+            alert('Conversion functionality requires server-side implementation');
+        });
+    </script>
+</body>
+</html>
