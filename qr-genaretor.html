@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Tools - Multi-Tool</title>
+    <style>
+        :root {
+            --primary-color: #0099ff;
+            --secondary-color: #ffffff;
+            --accent-color: #e3f2fd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            padding: 20px;
+        }
+
+        .qr-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .tool-switcher {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            background: var(--accent-color);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .preview-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #qrcode {
+            max-width: 300px;
+            margin: 0 auto 20px;
+        }
+
+        #scanner {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .result-section {
+            background: var(--accent-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+
+        @media (max-width: 768px) {
+            #qrcode {
+                max-width: 200px;
+            }
+            
+            #scanner {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="qr-container">
+        <h1>QR Code Tools</h1>
+        
+        <div class="tool-switcher">
+            <button class="mode-btn active" onclick="switchMode('generate')">Generate QR</button>
+            <button class="mode-btn" onclick="switchMode('scan')">Scan QR</button>
+        </div>
+
+        <div id="generator-section">
+            <div class="input-section">
+                <textarea id="qr-input" placeholder="Enter text or URL to generate QR code"></textarea>
+                <button onclick="generateQR()">Generate QR Code</button>
+            </div>
+            <div class="preview-section">
+                <div id="qrcode"></div>
+                <button onclick="downloadQR()" id="download-btn" style="display: none;">Download QR Code</button>
+            </div>
+        </div>
+
+        <div id="scanner-section" style="display: none;">
+            <video id="scanner"></video>
+            <div class="result-section">
+                <strong>Scanned Result:</strong>
+                <div id="scan-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan-2.0.0.min.js"></script>
+    <script>
+        let currentScanner = null;
+        let qrCode = null;
+
+        function switchMode(mode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('generator-section').style.display = mode === 'generate' ? 'block' : 'none';
+            document.getElementById('scanner-section').style.display = mode === 'scan' ? 'block' : 'none';
+            document.querySelector(`[onclick="switchMode('${mode}')"]`).classList.add('active');
+            
+            if (mode === 'scan') {
+                startScanner();
+            } else {
+                stopScanner();
+            }
+        }
+
+        function generateQR() {
+            const text = document.getElementById('qr-input').value;
+            if (!text) return;
+
+            if (qrCode) qrCode.clear();
+            document.getElementById('download-btn').style.display = 'block';
+            
+            qrCode = new QRCode(document.getElementById('qrcode'), {
+                text: text,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            const link = document.createElement('a');
+            link.download = 'qrcode.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.85);
+            link.click();
+        }
+
+        function startScanner() {
+            stopScanner();
+            const scannerElement = document.getElementById('scanner');
+            scannerElement.style.display = 'block';
+
+            currentScanner = new Instascan.Scanner({
+                video: scannerElement,
+                mirror: false
+            });
+
+            currentScanner.addListener('scan', content => {
+                document.getElementById('scan-result').textContent = content;
+                stopScanner();
+            });
+
+            Instascan.Camera.getCameras().then(cameras => {
+                if (cameras.length > 0) {
+                    currentScanner.start(cameras[0]);
+                } else {
+                    alert('No cameras found');
+                }
+            }).catch(error => {
+                console.error('Camera access error:', error);
+                alert('Camera access denied');
+            });
+        }
+
+        function stopScanner() {
+            if (currentScanner) {
+                currentScanner.stop();
+                document.getElementById('scanner').style.display = 'none';
+                currentScanner = null;
+            }
+        }
+
+        // Cleanup camera access when leaving page
+        window.addEventListener('beforeunload', stopScanner);
+    </script>
+</body>
+</html>
