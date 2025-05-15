@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Calculator</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+            margin: 1rem;
+        }
+
+        .calculator-header {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .result-preview {
+            border: 2px dashed var(--primary-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 8px;
+        }
+
+        .calculation-breakdown {
+            margin: 1rem 0;
+        }
+
+        .calculation-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+        }
+
+        .download-btn {
+            display: none;
+            margin-top: 1.5rem;
+            background: #e9f5ff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .calculation-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="calculator-header">GST Calculator</h1>
+        
+        <div class="input-group">
+            <select id="calculationType">
+                <option value="add">Add GST</option>
+                <option value="subtract">Subtract GST</option>
+                <option value="calculate">Calculate GST from Total</option>
+            </select>
+            <input type="number" id="amount" placeholder="Enter Amount">
+            <input type="number" id="gstRate" placeholder="GST Rate (%)" step="0.1">
+            <button onclick="calculateGST()">Calculate</button>
+        </div>
+
+        <div class="result-container">
+            <div class="result-preview" id="previewArea">
+                <div class="calculation-breakdown">
+                    <div class="calculation-row">
+                        <span>Net Amount:</span>
+                        <span id="netAmount">-</span>
+                    </div>
+                    <div class="calculation-row">
+                        <span>GST Amount:</span>
+                        <span id="gstAmount">-</span>
+                    </div>
+                    <div class="calculation-row">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">-</span>
+                    </div>
+                </div>
+            </div>
+            <button class="download-btn" id="downloadBtn" onclick="downloadResult()">
+                Download GST Calculation
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calculationType').addEventListener('change', function() {
+            const labels = {
+                add: "Enter Base Amount",
+                subtract: "Enter Total Amount",
+                calculate: "Enter Total Amount"
+            };
+            document.getElementById('amount').placeholder = labels[this.value];
+        });
+
+        function calculateGST() {
+            const calculationType = document.getElementById('calculationType').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const gstRate = parseFloat(document.getElementById('gstRate').value);
+
+            if (!amount || !gstRate || amount <= 0 || gstRate <= 0) {
+                alert('Please enter valid values');
+                return;
+            }
+
+            let netAmount, gstAmount, totalAmount;
+
+            switch(calculationType) {
+                case 'add':
+                    netAmount = amount;
+                    gstAmount = (amount * gstRate) / 100;
+                    totalAmount = netAmount + gstAmount;
+                    break;
+                case 'subtract':
+                    totalAmount = amount;
+                    netAmount = (amount * 100) / (100 + gstRate);
+                    gstAmount = totalAmount - netAmount;
+                    break;
+                case 'calculate':
+                    totalAmount = amount;
+                    netAmount = (amount * 100) / (100 + gstRate);
+                    gstAmount = totalAmount - netAmount;
+                    break;
+            }
+
+            document.getElementById('netAmount').textContent = `₹ ${netAmount.toFixed(2)}`;
+            document.getElementById('gstAmount').textContent = `₹ ${gstAmount.toFixed(2)}`;
+            document.getElementById('totalAmount').textContent = `₹ ${totalAmount.toFixed(2)}`;
+            document.getElementById('downloadBtn').style.display = 'block';
+        }
+
+        function downloadResult() {
+            html2canvas(document.querySelector("#previewArea")).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'gst-calculation.png';
+                link.href = canvas.toDataURL('image/png', 0.8);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
