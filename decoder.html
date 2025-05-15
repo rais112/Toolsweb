@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Encoder/Decoder</title>
+    <style>
+        :root {
+            --primary-color: #007BFF;
+            --background-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .tool-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .file-input {
+            margin: 15px 0;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            display: none;
+        }
+
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #dc3545;
+            border-radius: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            textarea {
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Base64 Encoder/Decoder</h1>
+        <div class="tool-container">
+            <div class="input-group">
+                <label for="inputData">Input:</label>
+                <textarea id="inputData" placeholder="Enter text or paste Base64 string..."></textarea>
+            </div>
+
+            <div class="file-input">
+                <input type="file" id="fileUpload" accept="image/*">
+                <label for="fileUpload" style="color: var(--primary-color); cursor: pointer;">↗ Upload Image</label>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="encodeBase64()">Encode to Base64</button>
+                <button onclick="decodeBase64()">Decode from Base64</button>
+            </div>
+
+            <div class="input-group">
+                <label for="outputData">Result:</label>
+                <textarea id="outputData" readonly></textarea>
+            </div>
+
+            <div class="preview-container">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+
+            <div class="btn-group">
+                <button onclick="downloadResult()">Download Result</button>
+                <button onclick="copyToClipboard()">Copy to Clipboard</button>
+            </div>
+
+            <div class="error" id="errorMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        function encodeBase64() {
+            const input = document.getElementById('inputData').value;
+            try {
+                const encoded = btoa(unescape(encodeURIComponent(input)));
+                showResult(encoded);
+                clearPreview();
+            } catch (e) {
+                showError('Error encoding text');
+            }
+        }
+
+        function decodeBase64() {
+            const input = document.getElementById('inputData').value.trim();
+            try {
+                // Check if input is a Base64 image
+                if (/^data:image\/[a-z]+;base64,/.test(input)) {
+                    const base64Data = input.split(',')[1];
+                    const decoded = atob(base64Data);
+                    showImagePreview(input);
+                    showResult('');
+                } else {
+                    const decoded = decodeURIComponent(escape(atob(input)));
+                    showResult(decoded);
+                    clearPreview();
+                }
+            } catch (e) {
+                showError('Invalid Base64 format');
+            }
+        }
+
+        function showResult(content) {
+            document.getElementById('outputData').value = content;
+            hideError();
+        }
+
+        function showImagePreview(base64String) {
+            const preview = document.getElementById('previewImage');
+            preview.src = base64String;
+            preview.style.display = 'block';
+        }
+
+        function clearPreview() {
+            document.getElementById('previewImage').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function downloadResult() {
+            const output = document.getElementById('outputData').value;
+            const preview = document.getElementById('previewImage').src;
+            
+            if (!output && !preview) {
+                showError('No result to download');
+                return;
+            }
+
+            if (preview && preview !== '') {
+                // Download image
+                const link = document.createElement('a');
+                link.download = 'decoded-image.png';
+                link.href = preview;
+                link.click();
+            } else {
+                // Download text
+                const blob = new Blob([output], {type: 'text/plain'});
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'base64-result.txt';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('outputData');
+            output.select();
+            document.execCommand('copy');
+        }
+
+        // Handle file upload
+        document.getElementById('fileUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('inputData').value = event.target.result;
+                    clearPreview();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
