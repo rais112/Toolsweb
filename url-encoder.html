@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Encoder/Decoder</title>
+    <style>
+        :root {
+            --primary-color: #00a8ff;
+            --background-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tool-container {
+            background: var(--background-color);
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            min-height: 150px;
+            font-family: monospace;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            flex: 1;
+        }
+
+        button:hover {
+            background-color: #0097e6;
+        }
+
+        .image-preview {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .download-btn {
+            margin-top: 1rem;
+            background-color: #4CAF50;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .tool-container {
+                padding: 1rem;
+            }
+
+            button {
+                flex: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tool-container">
+            <h1>URL Encoder/Decoder</h1>
+            
+            <div class="input-group">
+                <textarea id="inputText" placeholder="Enter text to encode or decode..."></textarea>
+            </div>
+
+            <div class="button-group">
+                <button onclick="encodeURL()">Encode URL</button>
+                <button onclick="decodeURL()">Decode URL</button>
+            </div>
+
+            <div class="input-group">
+                <textarea id="outputText" readonly placeholder="Result will appear here..."></textarea>
+            </div>
+
+            <div class="image-preview">
+                <h3>Image Preview</h3>
+                <input type="text" id="imageUrl" placeholder="Enter image URL to preview" class="url-input">
+                <button onclick="previewImage()">Preview Image</button>
+                <img id="previewImage" alt="Image preview">
+                <button class="download-btn" onclick="downloadImage()" style="display: none;">Download Compressed</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function encodeURL() {
+            const input = document.getElementById('inputText').value;
+            try {
+                const encoded = encodeURIComponent(input);
+                document.getElementById('outputText').value = encoded;
+            } catch (e) {
+                alert('Error encoding URL: ' + e.message);
+            }
+        }
+
+        function decodeURL() {
+            const input = document.getElementById('inputText').value;
+            try {
+                const decoded = decodeURIComponent(input);
+                document.getElementById('outputText').value = decoded;
+            } catch (e) {
+                alert('Error decoding URL: ' + e.message);
+            }
+        }
+
+        function previewImage() {
+            const imageUrl = document.getElementById('imageUrl').value;
+            const img = document.getElementById('previewImage');
+            const downloadBtn = document.querySelector('.download-btn');
+
+            if (imageUrl) {
+                img.src = imageUrl;
+                img.style.display = 'block';
+                downloadBtn.style.display = 'inline-block';
+            }
+        }
+
+        function downloadImage() {
+            const imageUrl = document.getElementById('imageUrl').value;
+            if (imageUrl) {
+                const link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = 'compressed-image';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Mobile responsive textarea adjustment
+        window.addEventListener('resize', () => {
+            const textareas = document.querySelectorAll('textarea');
+            textareas.forEach(textarea => {
+                textarea.style.minHeight = window.innerWidth < 768 ? '100px' : '150px';
+            });
+        });
+    </script>
+</body>
+</html>
