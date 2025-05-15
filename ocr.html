@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Text Converter</title>
+    <!-- Include Tesseract.js -->
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --background-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .tool-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-label {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .upload-label:hover {
+            background-color: #1976D2;
+        }
+
+        #image-input {
+            display: none;
+        }
+
+        .preview-container {
+            max-width: 100%;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            border: 3px solid var(--primary-color);
+            border-radius: 5px;
+        }
+
+        .result-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            min-height: 150px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        .download-link {
+            display: none;
+            margin-top: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            #image-preview {
+                max-height: 300px;
+            }
+
+            button {
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Image to Text Converter</h1>
+        </div>
+
+        <div class="tool-container">
+            <div class="upload-section">
+                <label class="upload-label">
+                    Upload Image
+                    <input type="file" id="image-input" accept="image/*">
+                </label>
+            </div>
+
+            <div class="preview-container">
+                <img id="image-preview">
+            </div>
+
+            <div class="controls">
+                <button id="process-btn">Convert to Text</button>
+                <button id="download-image-btn">Download Compressed Image</button>
+                <button id="download-text-btn">Download Text</button>
+            </div>
+
+            <div class="result-container" id="text-result">
+                <p>Extracted text will appear here...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const imagePreview = document.getElementById('image-preview');
+        const processBtn = document.getElementById('process-btn');
+        const downloadImageBtn = document.getElementById('download-image-btn');
+        const downloadTextBtn = document.getElementById('download-text-btn');
+        const textResult = document.getElementById('text-result');
+        let compressedImageUrl = null;
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    compressImage(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function compressImage(file) {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas dimensions to 50% of original
+                canvas.width = img.width * 0.5;
+                canvas.height = img.height * 0.5;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                canvas.toBlob((blob) => {
+                    compressedImageUrl = URL.createObjectURL(blob);
+                }, 'image/jpeg', 0.7);
+            };
+        }
+
+        processBtn.addEventListener('click', async () => {
+            if (!imagePreview.src) return;
+
+            textResult.innerHTML = '<p>Processing... <div class="spinner"></div></p>';
+            
+            try {
+                const worker = await Tesseract.createWorker();
+                await worker.loadLanguage('eng');
+                await worker.initialize('eng');
+                
+                const { data: { text } } = await worker.recognize(imagePreview.src);
+                textResult.innerHTML = `<pre>${text}</pre>`;
+                
+                await worker.terminate();
+            } catch (error) {
+                textResult.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+
+        downloadImageBtn.addEventListener('click', () => {
+            if (compressedImageUrl) {
+                const a = document.createElement('a');
+                a.download = 'compressed-image.jpg';
+                a.href = compressedImageUrl;
+                a.click();
+            }
+        });
+
+        downloadTextBtn.addEventListener('click', () => {
+            const text = textResult.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.download = 'extracted-text.txt';
+            a.href = url;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
